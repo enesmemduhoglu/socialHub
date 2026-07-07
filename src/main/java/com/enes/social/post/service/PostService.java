@@ -1,9 +1,12 @@
 package com.enes.social.post.service;
 
+import com.enes.social.comment.repository.CommentRepository;
 import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.common.exception.ForbiddenException;
 import com.enes.social.common.exception.ResourceNotFoundException;
+import com.enes.social.like.repository.PostLikeRepository;
 import com.enes.social.post.dto.CreatePostRequest;
+import com.enes.social.post.dto.PostDetailResponse;
 import com.enes.social.post.dto.PostResponse;
 import com.enes.social.post.dto.UpdatePostRequest;
 import com.enes.social.post.model.Post;
@@ -29,6 +32,8 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final CommentRepository commentRepository;
 
     @Transactional
     public PostResponse create(Long authorId, CreatePostRequest request) {
@@ -42,8 +47,12 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public PostResponse get(Long id) {
-        return PostResponse.from(findOrThrow(id));
+    public PostDetailResponse get(Long id, Long currentUserId) {
+        Post post = findOrThrow(id);
+        long likeCount = postLikeRepository.countByPostId(id);
+        long commentCount = commentRepository.countByPostId(id);
+        boolean liked = postLikeRepository.existsByPostIdAndUserId(id, currentUserId);
+        return PostDetailResponse.from(post, likeCount, commentCount, liked);
     }
 
     @Transactional(readOnly = true)
