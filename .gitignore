@@ -35,3 +35,6 @@ build/
 ### Environment ###
 .env
 
+### Claude Code (kişisel araçlar/skill'ler) ###
+.claude/
+

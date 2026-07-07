@@ -1,0 +1,112 @@
+package com.enes.social.post.service;
+
+import com.enes.social.common.dto.CursorPageResponse;
+import com.enes.social.common.exception.ForbiddenException;
+import com.enes.social.common.exception.ResourceNotFoundException;
+import com.enes.social.post.dto.CreatePostRequest;
+import com.enes.social.post.dto.PostResponse;
+import com.enes.social.post.dto.UpdatePostRequest;
+import com.enes.social.post.model.Post;
+import com.enes.social.post.repository.PostRepository;
+import com.enes.social.user.model.User;
+import com.enes.social.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Limit;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+/**
+ * Gönderi iş mantığı: CRUD, keyset (cursor) sayfalama ve sahiplik kontrolü.
+ */
+@Service
+@RequiredArgsConstructor
+public class PostService {
+
+    static final int DEFAULT_PAGE_SIZE = 20;
+    static final int MAX_PAGE_SIZE = 50;
+
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+
+    @Transactional
+    public PostResponse create(Long authorId, CreatePostRequest request) {
+        // Yazarı SELECT etmeden referansla bağlarız; yanıt oluşturulurken proxy tek sefer yüklenir.
+        User author = userRepository.getReferenceById(authorId);
+        Post post = Post.builder()
+                .author(author)
+                .content(request.content().trim())
+                .build();
+        return PostResponse.from(postRepository.save(post));
+    }
+
+    @Transactional(readOnly = true)
+    public PostResponse get(Long id) {
+        return PostResponse.from(findOrThrow(id));
+    }
+
+    @Transactional(readOnly = true)
+    public CursorPageResponse<PostResponse> feed(Long cursor, Integer size) {
+        int pageSize = normalizeSize(size);
+        List<Post> rows = postRepository.findFeed(cursor, Limit.of(pageSize + 1));
+        return toPage(rows, pageSize);
+    }
+
+    @Transactional(readOnly = true)
+    public CursorPageResponse<PostResponse> byAuthor(String username, Long cursor, Integer size) {
+        User author = userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + username));
+        int pageSize = normalizeSize(size);
+        List<Post> rows = postRepository.findByAuthor(author.getId(), cursor, Limit.of(pageSize + 1));
+        return toPage(rows, pageSize);
+    }
+
+    @Transactional
+    public PostResponse update(Long id, Long currentUserId, UpdatePostRequest request) {
+        Post post = findOrThrow(id);
+        requireOwner(post, currentUserId);
+        post.setContent(request.content().trim());
+        // flush: UPDATE'i şimdi yaz ki @UpdateTimestamp atansın ve yanıt taze updatedAt içersin.
+        postRepository.flush();
+        return PostResponse.from(post);
+    }
+
+    @Transactional
+    public void delete(Long id, Long currentUserId) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Gönderi bulunamadı: " + id));
+        requireOwner(post, currentUserId);
+        postRepository.delete(post);
+    }
+
+    private Post findOrThrow(Long id) {
+        return postRepository.findByIdWithAuthor(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Gönderi bulunamadı: " + id));
+    }
+
+    private void requireOwner(Post post, Long currentUserId) {
+        if (!post.getAuthor().getId().equals(currentUserId)) {
+            throw new ForbiddenException("Bu gönderi üzerinde işlem yapma yetkiniz yok");
+        }
+    }
+
+    private int normalizeSize(Integer size) {
+        if (size == null || size <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    /**
+     * pageSize+1 kayıt çekilir; fazladan gelen kayıt "daha var mı?" bilgisini verir,
+     * yanıta dahil edilmez. nextCursor son öğenin id'sidir.
+     */
+    private CursorPageResponse<PostResponse> toPage(List<Post> rows, int pageSize) {
+        boolean hasMore = rows.size() > pageSize;
+        List<Post> page = hasMore ? rows.subList(0, pageSize) : rows;
+        List<PostResponse> items = page.stream().map(PostResponse::from).toList();
+        Long nextCursor = hasMore ? page.get(page.size() - 1).getId() : null;
+        return CursorPageResponse.of(items, nextCursor, hasMore);
+    }
+}
