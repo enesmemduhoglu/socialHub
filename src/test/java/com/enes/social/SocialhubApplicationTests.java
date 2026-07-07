@@ -1,10 +1,11 @@
 package com.enes.social;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class SocialhubApplicationTests {
+/**
+ * Spring bağlamının Testcontainers PostgreSQL'i ile sorunsuz ayağa kalktığını doğrular.
+ */
+class SocialhubApplicationTests extends AbstractIntegrationTest {
 
 	@Test
 	void contextLoads() {
