@@ -2,6 +2,7 @@ package com.enes.social.post.controller;
 
 import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.post.dto.CreatePostRequest;
+import com.enes.social.post.dto.PostDetailResponse;
 import com.enes.social.post.dto.PostResponse;
 import com.enes.social.post.dto.UpdatePostRequest;
 import com.enes.social.post.service.PostService;
@@ -36,8 +37,9 @@ public class PostController {
     }
 
     @GetMapping("/posts/{id}")
-    public PostResponse getById(@PathVariable Long id) {
-        return postService.get(id);
+    public PostDetailResponse getById(@PathVariable Long id,
+                                      @AuthenticationPrincipal SecurityUser principal) {
+        return postService.get(id, principal.getDomainUser().getId());
     }
 
     /** Genel akış — keyset sayfalama. cursor boşsa en yeni gönderilerden başlar. */
