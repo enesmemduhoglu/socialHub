@@ -5,3 +5,7 @@ spring:
     url: jdbc:postgresql://localhost:5433/socialhub_test
     username: socialhub
     password: socialhub
+
+  # Testlerde cache kapalı: doğruluk testleri cache gecikmesinden etkilenmesin.
+  cache:
+    type: none

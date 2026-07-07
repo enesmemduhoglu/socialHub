@@ -1,5 +1,6 @@
 package com.enes.social.follow.service;
 
+import com.enes.social.common.config.CacheConfig;
 import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.common.exception.BadRequestException;
 import com.enes.social.common.exception.DuplicateResourceException;
@@ -11,10 +12,13 @@ import com.enes.social.user.dto.UserSummary;
 import com.enes.social.user.model.User;
 import com.enes.social.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -33,6 +37,7 @@ public class FollowService {
     private final UserRepository userRepository;
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.FOLLOWEE_IDS_CACHE, key = "#currentUserId")
     public void follow(Long currentUserId, String targetUsername) {
         User target = findUser(targetUsername);
         if (target.getId().equals(currentUserId)) {
@@ -49,12 +54,25 @@ public class FollowService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.FOLLOWEE_IDS_CACHE, key = "#currentUserId")
     public void unfollow(Long currentUserId, String targetUsername) {
         User target = findUser(targetUsername);
         Follow follow = followRepository
                 .findByFollowerIdAndFolloweeId(currentUserId, target.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Bu kullanıcıyı takip etmiyorsunuz"));
         followRepository.delete(follow);
+    }
+
+    /**
+     * Kullanıcının takip ettiği kişilerin (kendisi dahil) id kümesi. Feed sorgusunun
+     * temel girdisi; Redis'te cache'lenir ve follow/unfollow ile geçersiz kılınır.
+     */
+    @Cacheable(cacheNames = CacheConfig.FOLLOWEE_IDS_CACHE, key = "#userId")
+    @Transactional(readOnly = true)
+    public List<Long> followeeIdsIncludingSelf(Long userId) {
+        List<Long> ids = new ArrayList<>(followRepository.findFolloweeIds(userId));
+        ids.add(userId);
+        return ids;
     }
 
     @Transactional(readOnly = true)
