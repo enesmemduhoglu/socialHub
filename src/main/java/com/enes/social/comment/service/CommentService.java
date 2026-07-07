@@ -7,9 +7,11 @@ import com.enes.social.comment.repository.CommentRepository;
 import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.common.exception.ForbiddenException;
 import com.enes.social.common.exception.ResourceNotFoundException;
+import com.enes.social.notification.event.PostCommentedEvent;
 import com.enes.social.post.repository.PostRepository;
 import com.enes.social.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public CommentResponse create(Long authorId, Long postId, CreateCommentRequest request) {
@@ -38,7 +41,9 @@ public class CommentService {
                 .author(userRepository.getReferenceById(authorId))
                 .content(request.content().trim())
                 .build();
-        return CommentResponse.from(commentRepository.save(comment));
+        CommentResponse response = CommentResponse.from(commentRepository.save(comment));
+        eventPublisher.publishEvent(new PostCommentedEvent(authorId, postId));
+        return response;
     }
 
     @Transactional(readOnly = true)

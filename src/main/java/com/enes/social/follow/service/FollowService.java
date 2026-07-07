@@ -7,6 +7,7 @@ import com.enes.social.common.exception.DuplicateResourceException;
 import com.enes.social.common.exception.ResourceNotFoundException;
 import com.enes.social.follow.model.Follow;
 import com.enes.social.follow.repository.FollowRepository;
+import com.enes.social.notification.event.FollowCreatedEvent;
 import com.enes.social.user.dto.ProfileResponse;
 import com.enes.social.user.dto.UserSummary;
 import com.enes.social.user.model.User;
@@ -14,6 +15,7 @@ import com.enes.social.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @CacheEvict(cacheNames = CacheConfig.FOLLOWEE_IDS_CACHE, key = "#currentUserId")
@@ -51,6 +54,7 @@ public class FollowService {
                 .followee(target)
                 .build();
         followRepository.save(follow);
+        eventPublisher.publishEvent(new FollowCreatedEvent(currentUserId, target.getId()));
     }
 
     @Transactional
