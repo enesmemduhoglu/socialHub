@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +41,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             order by p.id desc
             """)
     List<Post> findByAuthor(@Param("authorId") Long authorId,
+                            @Param("cursor") Long cursor,
+                            Limit limit);
+
+    /**
+     * Kişisel akış (home timeline): verilen yazar kümesinin gönderileri, keyset.
+     * Yazar join fetch edilerek N+1 önlenir.
+     */
+    @Query("""
+            select p from Post p
+            join fetch p.author
+            where p.author.id in :authorIds
+              and (:cursor is null or p.id < :cursor)
+            order by p.id desc
+            """)
+    List<Post> findTimeline(@Param("authorIds") Collection<Long> authorIds,
                             @Param("cursor") Long cursor,
                             Limit limit);
 }

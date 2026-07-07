@@ -19,6 +19,10 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     Optional<Follow> findByFollowerIdAndFolloweeId(Long followerId, Long followeeId);
 
+    /** userId'nin takip ettiği kişilerin id'leri (feed için). */
+    @Query("select f.followee.id from Follow f where f.follower.id = :userId")
+    List<Long> findFolloweeIds(@Param("userId") Long userId);
+
     /** userId'nin takipçi sayısı. */
     long countByFolloweeId(Long followeeId);
 
