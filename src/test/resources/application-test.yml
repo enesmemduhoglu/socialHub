@@ -1,0 +1,7 @@
+# Test profili: testler compose ile ayağa kalkan PostgreSQL'deki ayrı bir
+# test veritabanına (socialhub_test) karşı koşar. Şemayı yine Flyway kurar.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/socialhub_test
+    username: socialhub
+    password: socialhub
