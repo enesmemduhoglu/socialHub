@@ -20,6 +20,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("select p from Post p join fetch p.author where p.id = :id")
     Optional<Post> findByIdWithAuthor(@Param("id") Long id);
 
+    /** Gönderinin yazar id'si (bildirim alıcısını çözmek için). */
+    @Query("select p.author.id from Post p where p.id = :id")
+    Optional<Long> findAuthorId(@Param("id") Long id);
+
     /**
      * Genel akış: id'ye göre azalan keyset sayfası.
      * cursor null ise en baştan başlar; değilse id < cursor olanları getirir.
