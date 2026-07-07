@@ -28,6 +28,14 @@ spring:
 server:
   port: 8080
 
+app:
+  jwt:
+    # HS256 için en az 256-bit (32+ karakter) secret. Üretimde env ile override edilir.
+    secret: ${JWT_SECRET:change-me-in-production-please-use-a-long-random-secret-key}
+    # Access token geçerlilik süresi (ms) — varsayılan 1 saat.
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+    issuer: socialhub
+
 management:
   endpoints:
     web:
