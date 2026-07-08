@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Takip iş mantığı: takip et / bırak, takipçi & takip edilen listeleri (keyset),
@@ -31,9 +30,6 @@ import java.util.function.Function;
 @Service
 @RequiredArgsConstructor
 public class FollowService {
-
-    static final int DEFAULT_PAGE_SIZE = 20;
-    static final int MAX_PAGE_SIZE = 50;
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
@@ -82,17 +78,19 @@ public class FollowService {
     @Transactional(readOnly = true)
     public CursorPageResponse<UserSummary> followers(String username, Long cursor, Integer size) {
         User user = findUser(username);
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
         List<Follow> rows = followRepository.findFollowers(user.getId(), cursor, Limit.of(pageSize + 1));
-        return toPage(rows, pageSize, f -> UserSummary.from(f.getFollower()));
+        return CursorPageResponse.paginate(rows, pageSize,
+                f -> UserSummary.from(f.getFollower()), Follow::getId);
     }
 
     @Transactional(readOnly = true)
     public CursorPageResponse<UserSummary> following(String username, Long cursor, Integer size) {
         User user = findUser(username);
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
         List<Follow> rows = followRepository.findFollowing(user.getId(), cursor, Limit.of(pageSize + 1));
-        return toPage(rows, pageSize, f -> UserSummary.from(f.getFollowee()));
+        return CursorPageResponse.paginate(rows, pageSize,
+                f -> UserSummary.from(f.getFollowee()), Follow::getId);
     }
 
     @Transactional(readOnly = true)
@@ -108,21 +106,5 @@ public class FollowService {
     private User findUser(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + username));
-    }
-
-    private int normalizeSize(Integer size) {
-        if (size == null || size <= 0) {
-            return DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(size, MAX_PAGE_SIZE);
-    }
-
-    private CursorPageResponse<UserSummary> toPage(List<Follow> rows, int pageSize,
-                                                  Function<Follow, UserSummary> mapper) {
-        boolean hasMore = rows.size() > pageSize;
-        List<Follow> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<UserSummary> items = page.stream().map(mapper).toList();
-        Long nextCursor = hasMore ? page.get(page.size() - 1).getId() : null;
-        return CursorPageResponse.of(items, nextCursor, hasMore);
     }
 }

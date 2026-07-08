@@ -25,9 +25,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommentService {
 
-    static final int DEFAULT_PAGE_SIZE = 20;
-    static final int MAX_PAGE_SIZE = 50;
-
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
@@ -49,14 +46,9 @@ public class CommentService {
     @Transactional(readOnly = true)
     public CursorPageResponse<CommentResponse> list(Long postId, Long cursor, Integer size) {
         requirePostExists(postId);
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
         List<Comment> rows = commentRepository.findByPost(postId, cursor, Limit.of(pageSize + 1));
-
-        boolean hasMore = rows.size() > pageSize;
-        List<Comment> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<CommentResponse> items = page.stream().map(CommentResponse::from).toList();
-        Long nextCursor = hasMore ? page.get(page.size() - 1).getId() : null;
-        return CursorPageResponse.of(items, nextCursor, hasMore);
+        return CursorPageResponse.paginate(rows, pageSize, CommentResponse::from, Comment::getId);
     }
 
     @Transactional
@@ -73,12 +65,5 @@ public class CommentService {
         if (!postRepository.existsById(postId)) {
             throw new ResourceNotFoundException("Gönderi bulunamadı: " + postId);
         }
-    }
-
-    private int normalizeSize(Integer size) {
-        if (size == null || size <= 0) {
-            return DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(size, MAX_PAGE_SIZE);
     }
 }

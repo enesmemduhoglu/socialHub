@@ -22,9 +22,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationService {
 
-    static final int DEFAULT_PAGE_SIZE = 20;
-    static final int MAX_PAGE_SIZE = 50;
-
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
 
@@ -44,14 +41,9 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public CursorPageResponse<NotificationResponse> list(Long userId, Long cursor, Integer size) {
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
         List<Notification> rows = notificationRepository.findForRecipient(userId, cursor, Limit.of(pageSize + 1));
-
-        boolean hasMore = rows.size() > pageSize;
-        List<Notification> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<NotificationResponse> items = page.stream().map(NotificationResponse::from).toList();
-        Long nextCursor = hasMore ? page.get(page.size() - 1).getId() : null;
-        return CursorPageResponse.of(items, nextCursor, hasMore);
+        return CursorPageResponse.paginate(rows, pageSize, NotificationResponse::from, Notification::getId);
     }
 
     @Transactional(readOnly = true)
@@ -69,12 +61,5 @@ public class NotificationService {
     @Transactional
     public void markAllRead(Long userId) {
         notificationRepository.markAllRead(userId);
-    }
-
-    private int normalizeSize(Integer size) {
-        if (size == null || size <= 0) {
-            return DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(size, MAX_PAGE_SIZE);
     }
 }
