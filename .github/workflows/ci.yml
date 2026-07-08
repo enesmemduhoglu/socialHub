@@ -1,0 +1,47 @@
+# CI: her push ve PR'da projeyi derler ve entegrasyon testlerini koşar.
+# Testler gerçek PostgreSQL ister (application-test.yml -> localhost:5433/socialhub_test);
+# lokaldeki compose kurulumunun birebir aynısı burada service container ile sağlanır.
+# Redis gerekmez: test profili cache.type=none kullanır.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: socialhub_test
+          POSTGRES_USER: socialhub
+          POSTGRES_PASSWORD: socialhub
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U socialhub -d socialhub_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Build and run tests
+        run: ./mvnw -B verify
