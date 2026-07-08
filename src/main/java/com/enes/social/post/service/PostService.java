@@ -27,9 +27,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostService {
 
-    static final int DEFAULT_PAGE_SIZE = 20;
-    static final int MAX_PAGE_SIZE = 50;
-
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
@@ -57,18 +54,18 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public CursorPageResponse<PostResponse> feed(Long cursor, Integer size) {
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
         List<Post> rows = postRepository.findFeed(cursor, Limit.of(pageSize + 1));
-        return toPage(rows, pageSize);
+        return CursorPageResponse.paginate(rows, pageSize, PostResponse::from, Post::getId);
     }
 
     @Transactional(readOnly = true)
     public CursorPageResponse<PostResponse> byAuthor(String username, Long cursor, Integer size) {
         User author = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + username));
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
         List<Post> rows = postRepository.findByAuthor(author.getId(), cursor, Limit.of(pageSize + 1));
-        return toPage(rows, pageSize);
+        return CursorPageResponse.paginate(rows, pageSize, PostResponse::from, Post::getId);
     }
 
     @Transactional
@@ -98,24 +95,5 @@ public class PostService {
         if (!post.getAuthor().getId().equals(currentUserId)) {
             throw new ForbiddenException("Bu gönderi üzerinde işlem yapma yetkiniz yok");
         }
-    }
-
-    private int normalizeSize(Integer size) {
-        if (size == null || size <= 0) {
-            return DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(size, MAX_PAGE_SIZE);
-    }
-
-    /**
-     * pageSize+1 kayıt çekilir; fazladan gelen kayıt "daha var mı?" bilgisini verir,
-     * yanıta dahil edilmez. nextCursor son öğenin id'sidir.
-     */
-    private CursorPageResponse<PostResponse> toPage(List<Post> rows, int pageSize) {
-        boolean hasMore = rows.size() > pageSize;
-        List<Post> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<PostResponse> items = page.stream().map(PostResponse::from).toList();
-        Long nextCursor = hasMore ? page.get(page.size() - 1).getId() : null;
-        return CursorPageResponse.of(items, nextCursor, hasMore);
     }
 }

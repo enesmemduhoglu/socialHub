@@ -12,23 +12,12 @@
 	<artifactId>socialhub</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>socialhub</name>
-	<description/>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<description>SocialHub — sosyal platform backend'i (Spring Boot): JWT auth, gönderi, takip, akış, beğeni/yorum, bildirim</description>
+	<url>https://github.com/enesmemduhoglu/socialHub</url>
 	<properties>
 		<java.version>21</java.version>
 		<jjwt.version>0.12.6</jjwt.version>
+		<bucket4j.version>8.10.1</bucket4j.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -85,6 +74,13 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>${jjwt.version}</version>
 			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Rate limiting (token bucket) -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j-core</artifactId>
+			<version>${bucket4j.version}</version>
 		</dependency>
 
 		<dependency>

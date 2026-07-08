@@ -9,3 +9,9 @@ spring:
   # Testlerde cache kapalı: doğruluk testleri cache gecikmesinden etkilenmesin.
   cache:
     type: none
+
+app:
+  rate-limit:
+    # Testler aynı IP'den (MockMvc) yüzlerce auth isteği yapar; sınır kapalı tutulur.
+    # Rate limit davranışının kendisi RateLimitIntegrationTest'te ayrıca test edilir.
+    enabled: false

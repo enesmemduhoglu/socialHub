@@ -23,29 +23,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FeedService {
 
-    static final int DEFAULT_PAGE_SIZE = 20;
-    static final int MAX_PAGE_SIZE = 50;
-
     private final FollowService followService;
     private final PostRepository postRepository;
 
     @Transactional(readOnly = true)
     public CursorPageResponse<PostResponse> timeline(Long userId, Long cursor, Integer size) {
         List<Long> authorIds = followService.followeeIdsIncludingSelf(userId);
-        int pageSize = normalizeSize(size);
+        int pageSize = CursorPageResponse.normalizeSize(size);
 
         List<Post> rows = postRepository.findTimeline(authorIds, cursor, Limit.of(pageSize + 1));
-        boolean hasMore = rows.size() > pageSize;
-        List<Post> page = hasMore ? rows.subList(0, pageSize) : rows;
-        List<PostResponse> items = page.stream().map(PostResponse::from).toList();
-        Long nextCursor = hasMore ? page.get(page.size() - 1).getId() : null;
-        return CursorPageResponse.of(items, nextCursor, hasMore);
-    }
-
-    private int normalizeSize(Integer size) {
-        if (size == null || size <= 0) {
-            return DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(size, MAX_PAGE_SIZE);
+        return CursorPageResponse.paginate(rows, pageSize, PostResponse::from, Post::getId);
     }
 }

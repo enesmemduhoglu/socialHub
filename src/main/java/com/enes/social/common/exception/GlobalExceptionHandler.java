@@ -1,14 +1,20 @@
 package com.enes.social.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,6 +22,7 @@ import java.util.Map;
 /**
  * Uygulama genelindeki hataları tutarlı {@link ApiError} yanıtlarına çevirir.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -28,6 +35,22 @@ public class GlobalExceptionHandler {
         }
         ApiError body = ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request",
                 "Doğrulama hatası", request.getRequestURI(), fieldErrors);
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(HttpMessageNotReadableException ex,
+                                                         HttpServletRequest request) {
+        ApiError body = ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request",
+                "İstek gövdesi okunamadı (geçersiz JSON)", request.getRequestURI());
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                       HttpServletRequest request) {
+        ApiError body = ApiError.of(HttpStatus.BAD_REQUEST.value(), "Bad Request",
+                "Geçersiz parametre değeri: " + ex.getName(), request.getRequestURI());
         return ResponseEntity.badRequest().body(body);
     }
 
@@ -44,6 +67,16 @@ public class GlobalExceptionHandler {
                                                     HttpServletRequest request) {
         ApiError body = ApiError.of(HttpStatus.CONFLICT.value(), "Conflict",
                 ex.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrity(DataIntegrityViolationException ex,
+                                                        HttpServletRequest request) {
+        // Servis katmanının yakalamadığı bir DB kısıt ihlali: 500 yerine 409 dönülür ama izlenir.
+        log.warn("Veri bütünlüğü ihlali: {} {}", request.getMethod(), request.getRequestURI(), ex);
+        ApiError body = ApiError.of(HttpStatus.CONFLICT.value(), "Conflict",
+                "İstek mevcut verilerle çakışıyor", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
@@ -64,6 +97,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex,
+                                                     HttpServletRequest request) {
+        // Eşleşmeyen path'ler: genel 500 yerine 404.
+        ApiError body = ApiError.of(HttpStatus.NOT_FOUND.value(), "Not Found",
+                "Kaynak bulunamadı", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiError> handleForbidden(ForbiddenException ex,
                                                     HttpServletRequest request) {
@@ -72,8 +114,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex,
+                                                       HttpServletRequest request) {
+        ApiError body = ApiError.of(HttpStatus.FORBIDDEN.value(), "Forbidden",
+                "Bu işlem için yetkiniz yok", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) {
+        // 500'ler istemciye detay sızdırmaz ama tam stack trace ile loglanır.
+        log.error("Beklenmeyen hata: {} {}", request.getMethod(), request.getRequestURI(), ex);
         ApiError body = ApiError.of(HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error", "Beklenmeyen bir hata oluştu", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
