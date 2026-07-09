@@ -1,0 +1,10 @@
+# Build context'e girmemesi gerekenler (imaj kucuk kalir, cache bozulmaz)
+target/
+.git/
+.github/
+.idea/
+.vscode/
+.claude/
+*.iml
+.env
+*.md
