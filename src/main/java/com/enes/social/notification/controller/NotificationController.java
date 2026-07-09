@@ -5,6 +5,7 @@ import com.enes.social.notification.dto.NotificationResponse;
 import com.enes.social.notification.dto.UnreadCountResponse;
 import com.enes.social.notification.service.NotificationService;
 import com.enes.social.security.SecurityUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
+@Tag(name = "Notifications", description = "Takip/beğeni/yorum olaylarından üretilen bildirimler")
 public class NotificationController {
 
     private final NotificationService notificationService;

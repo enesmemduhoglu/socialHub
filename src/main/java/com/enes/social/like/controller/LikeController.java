@@ -2,6 +2,7 @@ package com.enes.social.like.controller;
 
 import com.enes.social.like.service.LikeService;
 import com.enes.social.security.SecurityUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
+@Tag(name = "Likes", description = "Beğeni ekle/kaldır — her ikisi de idempotent")
 public class LikeController {
 
     private final LikeService likeService;

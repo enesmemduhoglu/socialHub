@@ -4,6 +4,7 @@ import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.feed.service.FeedService;
 import com.enes.social.post.dto.PostResponse;
 import com.enes.social.security.SecurityUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Tag(name = "Feed", description = "Kişisel akış: kendi + takip edilenlerin gönderileri")
 public class FeedController {
 
     private final FeedService feedService;
