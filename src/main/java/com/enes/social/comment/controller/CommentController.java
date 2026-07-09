@@ -5,6 +5,7 @@ import com.enes.social.comment.dto.CreateCommentRequest;
 import com.enes.social.comment.service.CommentService;
 import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.security.SecurityUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
+@Tag(name = "Comments", description = "Gönderi yorumları")
 public class CommentController {
 
     private final CommentService commentService;

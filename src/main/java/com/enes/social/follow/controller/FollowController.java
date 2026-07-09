@@ -5,6 +5,7 @@ import com.enes.social.follow.service.FollowService;
 import com.enes.social.security.SecurityUser;
 import com.enes.social.user.dto.ProfileResponse;
 import com.enes.social.user.dto.UserSummary;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Tag(name = "Follow", description = "Takip et/bırak, takipçi listeleri ve kullanıcı profili")
 public class FollowController {
 
     private final FollowService followService;

@@ -7,6 +7,7 @@ import com.enes.social.post.dto.PostResponse;
 import com.enes.social.post.dto.UpdatePostRequest;
 import com.enes.social.post.service.PostService;
 import com.enes.social.security.SecurityUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Tag(name = "Posts", description = "Gönderi CRUD + cursor (keyset) sayfalama")
 public class PostController {
 
     private final PostService postService;
