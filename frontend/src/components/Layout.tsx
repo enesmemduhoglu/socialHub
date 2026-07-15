@@ -1,6 +1,15 @@
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 
 export default function Layout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  function onLogout() {
+    logout()
+    navigate('/login')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
@@ -9,12 +18,29 @@ export default function Layout() {
             SocialHub
           </Link>
           <nav className="flex items-center gap-4 text-sm text-gray-600">
-            <Link to="/login" className="hover:text-indigo-600">
-              Giriş
-            </Link>
-            <Link to="/register" className="hover:text-indigo-600">
-              Kayıt
-            </Link>
+            {user ? (
+              <>
+                <span className="font-medium text-gray-900">
+                  @{user.username}
+                </span>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="hover:text-indigo-600"
+                >
+                  Çıkış
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="hover:text-indigo-600">
+                  Giriş
+                </Link>
+                <Link to="/register" className="hover:text-indigo-600">
+                  Kayıt
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
