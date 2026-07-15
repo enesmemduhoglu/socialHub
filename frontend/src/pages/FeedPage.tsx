@@ -1,41 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { useInfiniteQuery } from '@tanstack/react-query'
 import { getFeed } from '../api/posts'
+import { useInfiniteCursor } from '../lib/useInfiniteCursor'
 import CreatePostForm from '../components/CreatePostForm'
 import PostCard from '../components/PostCard'
 
 export default function FeedPage() {
   const {
-    data,
+    items: posts,
+    sentinelRef,
     isPending,
     isError,
     refetch,
     hasNextPage,
     isFetchingNextPage,
-    fetchNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['feed'],
-    queryFn: ({ pageParam }) => getFeed(pageParam),
-    initialPageParam: undefined as number | undefined,
-    getNextPageParam: (last) =>
-      last.hasMore && last.nextCursor !== null ? last.nextCursor : undefined,
-  })
-
-  // Sayfa sonundaki görünmez işaretçi görünür olunca sonraki sayfayı çek
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
-  useEffect(() => {
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-        fetchNextPage()
-      }
-    })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
-
-  const posts = data?.pages.flatMap((page) => page.items) ?? []
+  } = useInfiniteCursor(['feed'], getFeed)
 
   return (
     <div className="space-y-4">

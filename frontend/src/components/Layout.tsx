@@ -20,9 +20,12 @@ export default function Layout() {
           <nav className="flex items-center gap-4 text-sm text-gray-600">
             {user ? (
               <>
-                <span className="font-medium text-gray-900">
+                <Link
+                  to={`/users/${user.username}`}
+                  className="font-medium text-gray-900 hover:text-indigo-600"
+                >
                   @{user.username}
-                </span>
+                </Link>
                 <button
                   type="button"
                   onClick={onLogout}
