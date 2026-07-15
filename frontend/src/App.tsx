@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import FeedPage from './pages/FeedPage'
 import LoginPage from './pages/LoginPage'
+import PostDetailPage from './pages/PostDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import RegisterPage from './pages/RegisterPage'
 
@@ -13,6 +14,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route index element={<FeedPage />} />
           <Route path="/users/:username" element={<ProfilePage />} />
+          <Route path="/posts/:id" element={<PostDetailPage />} />
         </Route>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

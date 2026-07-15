@@ -52,9 +52,6 @@ export interface PostResponse {
   author: AuthorSummary
   createdAt: string
   updatedAt: string
-}
-
-export interface PostDetailResponse extends PostResponse {
   likeCount: number
   commentCount: number
   likedByCurrentUser: boolean

@@ -121,4 +121,43 @@ class FeedIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/feed"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void feed_itemsCarryLikeAndCommentCounts() throws Exception {
+        String alice = uniqueUsername("ia");
+        String bob = uniqueUsername("ib");
+        String aliceT = registerAndGetToken(alice);
+        String bobT = registerAndGetToken(bob);
+        follow(aliceT, bob);
+
+        createPost(bobT, "sayilacak-" + bob);
+
+        String feed = mockMvc.perform(get("/api/feed").header("Authorization", bearer(aliceT)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        Number postId = JsonPath.read(feed, "$.items[0].id");
+
+        // Alice beğenir, bob yorum yapar.
+        mockMvc.perform(post("/api/posts/" + postId + "/like")
+                        .header("Authorization", bearer(aliceT)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/posts/" + postId + "/comments")
+                        .header("Authorization", bearer(bobT))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"yorum\"}"))
+                .andExpect(status().isCreated());
+
+        // Alice'in akışında sayılar ve kendi beğeni durumu dolu gelir.
+        mockMvc.perform(get("/api/feed").header("Authorization", bearer(aliceT)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].likeCount", is(1)))
+                .andExpect(jsonPath("$.items[0].commentCount", is(1)))
+                .andExpect(jsonPath("$.items[0].likedByCurrentUser", is(true)));
+
+        // Bob beğenmedi: aynı gönderi onun akışında likedByCurrentUser=false döner.
+        mockMvc.perform(get("/api/feed").header("Authorization", bearer(bobT)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].likeCount", is(1)))
+                .andExpect(jsonPath("$.items[0].likedByCurrentUser", is(false)));
+    }
 }

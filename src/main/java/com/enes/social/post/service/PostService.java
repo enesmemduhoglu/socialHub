@@ -6,7 +6,6 @@ import com.enes.social.common.exception.ForbiddenException;
 import com.enes.social.common.exception.ResourceNotFoundException;
 import com.enes.social.like.repository.PostLikeRepository;
 import com.enes.social.post.dto.CreatePostRequest;
-import com.enes.social.post.dto.PostDetailResponse;
 import com.enes.social.post.dto.PostResponse;
 import com.enes.social.post.dto.UpdatePostRequest;
 import com.enes.social.post.model.Post;
@@ -31,6 +30,7 @@ public class PostService {
     private final UserRepository userRepository;
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
+    private final PostResponseAssembler assembler;
 
     @Transactional
     public PostResponse create(Long authorId, CreatePostRequest request) {
@@ -40,32 +40,32 @@ public class PostService {
                 .author(author)
                 .content(request.content().trim())
                 .build();
-        return PostResponse.from(postRepository.save(post));
+        return PostResponse.fresh(postRepository.save(post));
     }
 
     @Transactional(readOnly = true)
-    public PostDetailResponse get(Long id, Long currentUserId) {
+    public PostResponse get(Long id, Long currentUserId) {
         Post post = findOrThrow(id);
-        long likeCount = postLikeRepository.countByPostId(id);
-        long commentCount = commentRepository.countByPostId(id);
-        boolean liked = postLikeRepository.existsByPostIdAndUserId(id, currentUserId);
-        return PostDetailResponse.from(post, likeCount, commentCount, liked);
+        return withCounts(post, currentUserId);
     }
 
     @Transactional(readOnly = true)
-    public CursorPageResponse<PostResponse> feed(Long cursor, Integer size) {
+    public CursorPageResponse<PostResponse> feed(Long currentUserId, Long cursor, Integer size) {
         int pageSize = CursorPageResponse.normalizeSize(size);
         List<Post> rows = postRepository.findFeed(cursor, Limit.of(pageSize + 1));
-        return CursorPageResponse.paginate(rows, pageSize, PostResponse::from, Post::getId);
+        return CursorPageResponse.paginate(rows, pageSize,
+                assembler.mapper(rows, currentUserId), Post::getId);
     }
 
     @Transactional(readOnly = true)
-    public CursorPageResponse<PostResponse> byAuthor(String username, Long cursor, Integer size) {
+    public CursorPageResponse<PostResponse> byAuthor(String username, Long currentUserId,
+                                                     Long cursor, Integer size) {
         User author = userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Kullanıcı bulunamadı: " + username));
         int pageSize = CursorPageResponse.normalizeSize(size);
         List<Post> rows = postRepository.findByAuthor(author.getId(), cursor, Limit.of(pageSize + 1));
-        return CursorPageResponse.paginate(rows, pageSize, PostResponse::from, Post::getId);
+        return CursorPageResponse.paginate(rows, pageSize,
+                assembler.mapper(rows, currentUserId), Post::getId);
     }
 
     @Transactional
@@ -75,7 +75,7 @@ public class PostService {
         post.setContent(request.content().trim());
         // flush: UPDATE'i şimdi yaz ki @UpdateTimestamp atansın ve yanıt taze updatedAt içersin.
         postRepository.flush();
-        return PostResponse.from(post);
+        return withCounts(post, currentUserId);
     }
 
     @Transactional
@@ -84,6 +84,13 @@ public class PostService {
                 .orElseThrow(() -> new ResourceNotFoundException("Gönderi bulunamadı: " + id));
         requireOwner(post, currentUserId);
         postRepository.delete(post);
+    }
+
+    private PostResponse withCounts(Post post, Long currentUserId) {
+        long likeCount = postLikeRepository.countByPostId(post.getId());
+        long commentCount = commentRepository.countByPostId(post.getId());
+        boolean liked = postLikeRepository.existsByPostIdAndUserId(post.getId(), currentUserId);
+        return PostResponse.from(post, likeCount, commentCount, liked);
     }
 
     private Post findOrThrow(Long id) {

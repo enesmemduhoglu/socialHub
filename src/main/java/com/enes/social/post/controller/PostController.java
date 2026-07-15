@@ -2,7 +2,6 @@ package com.enes.social.post.controller;
 
 import com.enes.social.common.dto.CursorPageResponse;
 import com.enes.social.post.dto.CreatePostRequest;
-import com.enes.social.post.dto.PostDetailResponse;
 import com.enes.social.post.dto.PostResponse;
 import com.enes.social.post.dto.UpdatePostRequest;
 import com.enes.social.post.service.PostService;
@@ -39,24 +38,26 @@ public class PostController {
     }
 
     @GetMapping("/posts/{id}")
-    public PostDetailResponse getById(@PathVariable Long id,
-                                      @AuthenticationPrincipal SecurityUser principal) {
+    public PostResponse getById(@PathVariable Long id,
+                                @AuthenticationPrincipal SecurityUser principal) {
         return postService.get(id, principal.getDomainUser().getId());
     }
 
     /** Genel akış — keyset sayfalama. cursor boşsa en yeni gönderilerden başlar. */
     @GetMapping("/posts")
     public CursorPageResponse<PostResponse> feed(@RequestParam(required = false) Long cursor,
-                                                 @RequestParam(required = false) Integer size) {
-        return postService.feed(cursor, size);
+                                                 @RequestParam(required = false) Integer size,
+                                                 @AuthenticationPrincipal SecurityUser principal) {
+        return postService.feed(principal.getDomainUser().getId(), cursor, size);
     }
 
     /** Belirli kullanıcının gönderileri — keyset sayfalama. */
     @GetMapping("/users/{username}/posts")
     public CursorPageResponse<PostResponse> byAuthor(@PathVariable String username,
                                                      @RequestParam(required = false) Long cursor,
-                                                     @RequestParam(required = false) Integer size) {
-        return postService.byAuthor(username, cursor, size);
+                                                     @RequestParam(required = false) Integer size,
+                                                     @AuthenticationPrincipal SecurityUser principal) {
+        return postService.byAuthor(username, principal.getDomainUser().getId(), cursor, size);
     }
 
     @PutMapping("/posts/{id}")
